@@ -87,6 +87,7 @@ resource storageBlobPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateD
   parent: storageBlobPrivateDnsZone
   location: 'global'
   properties: {
+    registrationEnabled: false
     virtualNetwork: {
       id: virtualNetwork.id
     }
