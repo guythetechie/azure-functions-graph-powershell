@@ -78,7 +78,7 @@ resource vnetIntegrationSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-0
 
 resource storageBlobPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
   name: 'privatelink.blob.${environment().suffixes.storage}'
-  location: location
+  location: 'global'
   tags: tags
 }
 
@@ -158,17 +158,9 @@ resource blobServices 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01
   parent: storageAccount
 }
 
-resource functionAppContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
-  name: functionAppContainerName
-  parent: blobServices
-  properties: {
-    publicAccess: 'None'
-  }
-}
-
-resource functionAppContainerDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+resource blobServicesDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: 'enable-all'
-  scope: functionAppContainer
+  scope: blobServices
   properties: {
     logs: [
       {
@@ -178,6 +170,14 @@ resource functionAppContainerDiagnosticSettings 'Microsoft.Insights/diagnosticSe
     ]
     logAnalyticsDestinationType: 'Dedicated'
     workspaceId: logAnalyticsWorkspace.id
+  }
+}
+
+resource functionAppContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  name: functionAppContainerName
+  parent: blobServices
+  properties: {
+    publicAccess: 'None'
   }
 }
 
@@ -206,6 +206,25 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
     serverFarmId: appServicePlan.id
     virtualNetworkSubnetId: vnetIntegrationSubnet.id
     vnetRouteAllEnabled: true
+    functionAppConfig: {
+      deployment: {
+        storage: {
+          type: 'blobContainer'
+          value: uri(storageAccount.properties.primaryEndpoints.blob, functionAppContainerName)
+          authentication: {
+            type: 'SystemAssignedIdentity'
+          }
+        }
+      }
+      scaleAndConcurrency: {
+        maximumInstanceCount: 100
+        instanceMemoryMB: 2048
+      }
+      runtime: {
+        name: 'powershell'
+        version: '7.4'
+      }
+    }
   }
 }
 
