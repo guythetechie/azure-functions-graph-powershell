@@ -1,0 +1,3 @@
+@{
+    'Microsoft.Graph' = '2.*'
+}

@@ -40,3 +40,22 @@ jobs:
 
           # Pass deployment stack name to output
           echo "DEPLOYMENT_STACK_NAME=$DEPLOYMENT_STACK_NAME" >> $GITHUB_OUTPUT
+
+      - name: Publish function app
+        run: |
+          set -euo pipefail
+
+          echo "Zipping output folder..."
+          ZIP_FILE_PATH="${{ runner.temp }}/function-app.zip"
+          cd "${{ github.workspace }}/function-app"
+          zip -r "$ZIP_FILE_PATH" "./"
+
+          echo "Deploying function app..."
+          DEPLOYMENT_STACK_NAME="${{ steps.deploy_bicep_file.outputs.DEPLOYMENT_STACK_NAME }}"
+          DEPLOYMENT_STACK=$(az stack sub show -n "$DEPLOYMENT_STACK_NAME")
+          RESOURCE_GROUP_NAME=$(echo "$DEPLOYMENT_STACK" | jq -r '.outputs.resourceGroupName.value')
+          FUNCTION_APP_NAME=$(echo "$DEPLOYMENT_STACK" | jq -r '.outputs.functionAppName.value')
+          az functionapp deployment source config-zip \
+            --name "$FUNCTION_APP_NAME" \
+            --resource-group "$(echo "$DEPLOYMENT_STACK" | jq -r '.outputs.resourceGroupName.value')" \
+            --src "$ZIP_FILE_PATH"
