@@ -45,6 +45,10 @@ jobs:
         run: |
           set -euo pipefail
 
+          echo "Installing modules..."
+          mkdir -p "${{ github.workspace }}/function-app/Modules"
+          pwsh -Command "Find-Module -Name 'Microsoft.Graph' -Repository 'PSGallery' | Save-Module -Path '${{ github.workspace }}/function-app/Modules'"
+
           echo "Zipping output folder..."
           ZIP_FILE_PATH="${{ runner.temp }}/function-app.zip"
           cd "${{ github.workspace }}/function-app"
