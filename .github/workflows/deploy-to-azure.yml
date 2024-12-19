@@ -1,0 +1,42 @@
+name: Deploy to Azure
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy_azure_resources:
+    name: Deploy Azure resources
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Bicep file
+        id: deploy_bicep_file
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DEPLOYMENT_STACK_NAME="azure-functions-graph-powershell "
+
+          echo "Creating deployment stack..."
+          az stack sub create \
+            --action-on-unmanage "DeleteAll" \
+            --deny-settings-mode none \
+            --location "eastus" \
+            --name "$DEPLOYMENT_STACK_NAME" \
+            --template-file "${{ github.workspace }}/bicep/main.bicep" \
+            --yes
+
+          # Pass deployment stack name to output
+          echo "DEPLOYMENT_STACK_NAME=$DEPLOYMENT_STACK_NAME" >> $GITHUB_OUTPUT
