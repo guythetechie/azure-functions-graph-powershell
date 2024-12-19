@@ -85,6 +85,7 @@ resource storageBlobPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01
 resource storageBlobPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
   name: '${storageBlobPrivateDnsZone.name}-${virtualNetwork.name}'
   parent: storageBlobPrivateDnsZone
+  location: 'global'
   properties: {
     virtualNetwork: {
       id: virtualNetwork.id
@@ -223,6 +224,31 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
       runtime: {
         name: 'powershell'
         version: '7.4'
+      }
+    }
+    siteConfig: {
+      appSettings: [
+        {
+          name: 'AzureWebJobsStorage__blobServiceUri'
+          value: storageAccount.properties.primaryEndpoints.blob
+        }
+        {
+          name: 'AzureWebJobsStorage__queueServiceUri'
+          value: storageAccount.properties.primaryEndpoints.queue
+        }
+        {
+          name: 'AzureWebJobsStorage__tableServiceUri'
+          value: storageAccount.properties.primaryEndpoints.table
+        }
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: applicationInsights.properties.ConnectionString
+        }
+      ]
+      cors: {
+        allowedOrigins: [
+          'https://portal.azure.com'
+        ]
       }
     }
   }
